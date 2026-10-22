@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>شب‌وروز</title>
+<meta name="theme-color" content="#0d1324">
+<meta name="description" content="بازی پازل منطقی شب‌وروز">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="شب‌وروز">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+@font-face{font-family:"Vazirmatn";src:url("fonts/Vazirmatn.woff2") format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Lalezar";src:url("fonts/Lalezar-arabic.woff2") format("woff2");font-weight:400;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0898-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC}
+@font-face{font-family:"Lalezar";src:url("fonts/Lalezar-latin.woff2") format("woff2");font-weight:400;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+:root{color-scheme:dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;height:100%;background:#0d1324}
+body{margin:0}
+[hidden]{display:none!important}
+html,body{overscroll-behavior:none;touch-action:manipulation}
+</style>
+</head>
+<body>
+<style>
+/* Layout: one portrait column under a night sky with a dawn horizon; sun tiles vs night tiles; stars from the journey, diamonds from the timed puzzles */
+:root{
+  --sky:#0d1324; --sky-2:#151d35; --horizon:#e98a3d;
+  --slot:#232c45; --slot-edge:#2f3a5a; --panel:#18203a; --panel-2:#1f2949; --line:#2b3556;
+  --day:#f7e2ad; --day-deep:#e9b34f; --sun:#f5b83d;
+  --night:#1e2a55; --night-deep:#121a38; --moon:#9fb3ff;
+  --gem:#7fdcff; --cream:#eef0f7; --muted:#8f99b8; --bad:#ff6a57; --good:#62d6a5;
+  --f-display:"Lalezar","Vazirmatn",Tahoma,sans-serif;
+  --f-body:"Vazirmatn",Tahoma,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--sky);color:var(--cream);font-family:var(--f-body);font-size:15px;overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+#app{position:relative;height:100%;max-width:560px;margin:0 auto;overflow:hidden;
+  background:radial-gradient(120% 38% at 50% 108%,rgba(233,138,61,.36),transparent 70%),linear-gradient(180deg,var(--sky) 0%,var(--sky-2) 70%,#24203a 100%)}
+#app.dayside{background:radial-gradient(120% 45% at 50% 108%,rgba(245,184,61,.5),transparent 72%),linear-gradient(180deg,#121a33 0%,#1e2850 62%,#3a2f4a 100%)}
+#stars{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 18px}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-touch-callout:none}
+button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.ico{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.15em}
+
+/* wallet */
+.wallet{display:flex;gap:6px}
+.coin{display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:20px;padding:4px 10px 4px 8px;font-weight:800;font-size:14px}
+.coin svg{width:17px;height:17px}
+.coin.st{color:var(--sun)} .coin.gm{color:var(--gem)}
+.coin.bump{animation:bump .5s}
+@keyframes bump{40%{transform:scale(1.18)}}
+
+/* menu */
+#menu{align-items:center;gap:14px;text-align:center}
+.menu-top{width:100%;display:flex;justify-content:space-between;align-items:center}
+.menu-top .rec{border:1px solid var(--line);background:var(--panel);border-radius:13px;padding:6px 12px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px}
+.menu-top .rec svg{width:16px;height:16px}
+.logo{width:116px;height:116px;filter:drop-shadow(0 0 30px rgba(245,184,61,.35));margin-top:4px}
+.logo .spin{transform-origin:66px 66px;animation:spin 40s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(50px,14vw,64px);line-height:1;margin:-8px 0 0;
+  background:linear-gradient(90deg,var(--sun),var(--cream) 55%,var(--moon));-webkit-background-clip:text;background-clip:text;color:transparent}
+.tag{margin:-8px 0 0;color:var(--muted);font-size:14px;max-width:32ch}
+.modes{display:flex;flex-direction:column;gap:10px;width:100%;max-width:400px}
+.mode{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:12px;border:0;border-radius:18px;padding:12px 14px;text-align:start;
+  background:var(--panel);box-shadow:inset 0 0 0 1px var(--line),0 4px 0 #090d1a;transition:transform .1s}
+.mode:active{transform:translateY(3px);box-shadow:inset 0 0 0 1px var(--line)}
+.mode .ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center}
+.mode .ic svg{width:28px;height:28px}
+.mode b{font-family:var(--f-display);font-weight:400;font-size:23px;line-height:1.15;display:block}
+.mode small{font-size:12.5px;color:var(--muted);display:block}
+.mode .meta{font-size:13px;font-weight:800;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.mode .meta svg{width:16px;height:16px}
+.mode.journey .ic{background:linear-gradient(135deg,var(--sun),var(--horizon))} .mode.journey .meta{color:var(--sun)}
+.mode.rush .ic{background:linear-gradient(135deg,#ff8a5c,var(--bad))} .mode.rush .meta{color:#ff9a7a}
+.mode.pz .ic{background:linear-gradient(135deg,var(--moon),#5b6fd6)} .mode.pz .meta{color:var(--gem)}
+.mode.pz.day .ic{background:linear-gradient(135deg,#ffe08a,var(--sun))}
+.mode.pz{box-shadow:inset 0 0 0 1.5px rgba(127,220,255,.35),0 4px 0 #090d1a}
+.links{display:flex;gap:16px}
+.copy{border:0;background:none;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px;padding:4px}
+
+/* topbar */
+.topbar{display:flex;align-items:center;gap:10px;flex:none;min-height:44px}
+.back{width:42px;height:42px;border-radius:13px;border:1px solid var(--line);background:var(--panel);display:grid;place-items:center;padding:0;flex:none}
+.back svg{width:20px;height:20px}
+.topbar h2{font-family:var(--f-display);font-weight:400;font-size:24px;margin:0;line-height:1.1;flex:1;min-width:0}
+.topbar h2 small{display:block;font-family:var(--f-body);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* levels */
+.chapter{margin-top:18px}
+.chapter h3{font-family:var(--f-display);font-weight:400;font-size:21px;margin:0;display:flex;align-items:baseline;gap:8px}
+.chapter h3 small{font-family:var(--f-body);font-size:12px;color:var(--muted)}
+.chapter h3 .cs{margin-inline-start:auto;font-family:var(--f-body);font-size:13px;font-weight:800;color:var(--sun);display:flex;gap:3px;align-items:center}
+.chapter h3 .cs svg{width:14px;height:14px}
+.lvgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
+.lv{aspect-ratio:1;border:0;border-radius:14px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0}
+.lv b{font-family:var(--f-display);font-weight:400;font-size:21px;line-height:1}
+.lv .st{display:flex;gap:1px;min-height:11px}.lv .st svg{width:11px;height:11px}
+.lv.next{background:linear-gradient(160deg,#2b3768,var(--panel));box-shadow:inset 0 0 0 2px var(--sun);animation:glow 1.8s infinite}
+@keyframes glow{50%{box-shadow:inset 0 0 0 2px var(--sun),0 0 18px rgba(245,184,61,.35)}}
+.lv:disabled{opacity:.32;cursor:default}
+.lv .sz{font-size:10px;color:var(--muted)}
+
+/* puzzle set */
+.period-hero{margin-top:12px;border-radius:20px;padding:14px 16px;background:linear-gradient(160deg,#25306a,var(--panel));border:1px solid var(--line);display:flex;align-items:center;gap:14px}
+.period-hero.day{background:linear-gradient(160deg,#5a4520,#2a2a3e)}
+.period-hero svg.big{width:56px;height:56px;flex:none}
+.period-hero .t{flex:1;min-width:0}
+.period-hero .t b{font-family:var(--f-display);font-weight:400;font-size:22px;display:block;line-height:1.2}
+.period-hero .t span{font-size:12.5px;color:var(--muted)}
+.cd{font-family:var(--f-display);font-size:22px;direction:ltr;color:var(--cream)}
+.cd small{display:block;direction:rtl;font-family:var(--f-body);font-size:11px;color:var(--muted);text-align:center}
+.pzlist{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.pzc{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:12px;align-items:center;border:0;text-align:start;border-radius:18px;padding:12px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line),0 4px 0 #090d1a}
+.pzc:disabled{opacity:.45;cursor:default}
+.pzc .sz{width:62px;height:62px;border-radius:14px;background:#141b33;display:grid;place-items:center;font-family:var(--f-display);font-size:21px;line-height:1;position:relative;overflow:hidden}
+.pzc .sz i{position:absolute;inset:0;opacity:.5;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px)}
+.pzc .sz span{position:relative}
+.pzc b{font-family:var(--f-display);font-weight:400;font-size:20px;display:block;line-height:1.2}
+.pzc small{display:block;font-size:12px;color:var(--muted)}
+.pzc .rw{display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-weight:800;font-size:13px;color:var(--gem);white-space:nowrap}
+.pzc .rw svg{width:15px;height:15px}
+.pzc .rw .g{display:flex;gap:4px;align-items:center}
+.pzc .rw em{font-style:normal;font-size:11.5px;color:var(--muted);font-weight:500}
+.pzc.done{box-shadow:inset 0 0 0 1.5px rgba(98,214,165,.5),0 4px 0 #090d1a}
+.pzc .state{font-size:12px;font-weight:700;color:var(--good)}
+.pzc .state.go{color:var(--sun)}
+.setbonus{margin-top:12px;font-size:13px;color:var(--muted);text-align:center;line-height:1.8}
+.setbonus b{color:var(--gem)}
+
+/* records */
+.reccard{margin-top:12px;border-radius:18px;background:var(--panel);border:1px solid var(--line);padding:12px 14px}
+.reccard h3{margin:0 0 8px;font-family:var(--f-display);font-weight:400;font-size:20px;display:flex;align-items:center;gap:8px}
+.reccard h3 svg{width:22px;height:22px}
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.rgrid div{background:rgba(0,0,0,.25);border-radius:12px;padding:7px 8px;min-width:0}
+.rgrid span{display:block;font-size:11px;color:var(--muted)}
+.rgrid b{font-family:var(--f-display);font-weight:400;font-size:19px;white-space:nowrap}
+
+/* play */
+#play{gap:10px}
+.clock{direction:ltr;font-family:var(--f-display);font-size:23px;line-height:1;min-width:64px;text-align:center;padding:8px 10px;border-radius:13px;background:var(--panel);border:1px solid var(--line)}
+.clock.hot{color:var(--bad);border-color:var(--bad);animation:beat 1s infinite}
+@keyframes beat{50%{transform:scale(1.06)}}
+.rushhud{flex:none;border-radius:18px;padding:10px 12px 9px;background:linear-gradient(160deg,#2a1f3d,#1a1730);border:1px solid #4a2f45;box-shadow:0 10px 30px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:7px;position:relative;overflow:hidden}
+.rushhud::before{content:"";position:absolute;inset:-40% -10% auto auto;width:60%;height:140%;background:radial-gradient(circle,rgba(255,138,92,.18),transparent 65%);pointer-events:none}
+.rh-row{display:grid;grid-template-columns:1fr 1.2fr 1fr;align-items:center;gap:8px;position:relative}
+.rh-time{display:flex;align-items:baseline;gap:5px}
+.rh-time b{font-family:var(--f-display);font-weight:400;font-size:40px;line-height:.9;color:var(--cream);transition:color .2s}
+.rh-time span,.rh-score span,.rh-combo span{font-size:11.5px;color:var(--muted)}
+.rh-score{text-align:center;display:flex;flex-direction:column;align-items:center}
+.rh-score b{font-family:var(--f-display);font-weight:400;font-size:30px;line-height:1;color:var(--sun);text-shadow:0 0 18px rgba(245,184,61,.35)}
+.rh-combo{justify-self:end;display:flex;flex-direction:column;align-items:center;min-width:64px;padding:4px 8px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid var(--line);transition:all .25s}
+.rh-combo b{font-family:var(--f-display);font-weight:400;font-size:24px;line-height:1.05}
+.rh-combo.hot{border-color:#ff8a5c;background:linear-gradient(180deg,rgba(255,138,92,.35),rgba(255,106,87,.15));box-shadow:0 0 18px rgba(255,138,92,.45);animation:beat .9s infinite}
+.rh-combo.hot b{color:#ffd0b8}
+.rh-bar{height:9px;border-radius:6px;background:rgba(0,0,0,.35);overflow:hidden;position:relative}
+.rh-bar i{position:absolute;inset:0 auto 0 0;width:100%;border-radius:6px;background:linear-gradient(90deg,var(--bad),#ff8a5c 35%,var(--sun));box-shadow:0 0 12px rgba(245,184,61,.5);transition:width .2s linear}
+.rh-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.rh-meta b{color:var(--cream)}
+#play.danger .rh-time b{color:var(--bad);animation:beat .5s infinite}
+#play.danger::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:7;box-shadow:inset 0 0 70px rgba(255,70,50,.55);animation:vign 1s infinite}
+@keyframes vign{50%{opacity:.35}}
+.countdown{position:absolute;inset:0;z-index:9;display:grid;place-items:center;pointer-events:none}
+.countdown b{font-family:var(--f-display);font-weight:400;font-size:120px;color:var(--sun);text-shadow:0 0 40px rgba(245,184,61,.7);animation:cd .9s ease-out both}
+@keyframes cd{0%{transform:scale(2.2);opacity:0}30%{transform:scale(1);opacity:1}100%{transform:scale(.7);opacity:0}}
+.board.veil{filter:blur(14px) brightness(.6);pointer-events:none}
+.pausebtn{width:42px;height:42px;border-radius:13px;border:1px solid var(--line);background:var(--panel);display:grid;place-items:center;padding:0;flex:none}
+.pausebtn svg{width:18px;height:18px}
+.subbar{display:flex;gap:8px;flex:none;align-items:center}
+.subbar .stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;min-width:0}
+.subbar span{font-size:12px;color:var(--muted)}
+.subbar b{font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1}
+.subbar .combo b{color:var(--sun)}
+.boardwrap{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0;position:relative}
+.board{direction:ltr;display:grid;gap:4px;padding:8px;border-radius:18px;background:linear-gradient(180deg,#1a2240,#141b33);
+  box-shadow:inset 0 0 0 1px var(--line),0 18px 40px rgba(0,0,0,.45);width:min(100%,440px);box-sizing:border-box;touch-action:none;position:relative}
+.board.big{gap:2px;padding:5px;border-radius:12px;width:100%;max-width:520px}
+.board.huge{gap:1.5px;padding:4px;border-radius:10px;width:100%;max-width:540px}
+.board.won{box-shadow:inset 0 0 0 2px var(--sun),0 0 50px rgba(245,184,61,.35)}
+.cell{position:relative;aspect-ratio:1;border-radius:22%;background:var(--slot);box-shadow:inset 0 0 0 1px var(--slot-edge);transition:transform .08s}
+.board.big .cell,.board.huge .cell{border-radius:16%}
+.cell::before{content:"";position:absolute;inset:0;border-radius:inherit;opacity:0;transform:scale(.6);transition:opacity .14s,transform .18s cubic-bezier(.2,1.5,.4,1)}
+.cell.d::before{opacity:1;transform:none;background:radial-gradient(circle at 45% 35%,#fffaf0 0%,var(--day) 45%,var(--day-deep) 100%);box-shadow:inset 0 -3px 0 rgba(150,90,10,.35),0 0 12px rgba(245,184,61,.22)}
+.board.huge .cell.d::before{box-shadow:inset 0 -1.5px 0 rgba(150,90,10,.35)}
+.cell.n::before{opacity:1;transform:none;background:radial-gradient(circle at 30% 30%,#d9e1ff 0 2%,transparent 3%),radial-gradient(circle at 68% 58%,#c5d0ff 0 1.8%,transparent 2.8%),radial-gradient(circle at 42% 76%,#aebcff 0 1.4%,transparent 2.4%),linear-gradient(160deg,var(--night),var(--night-deep));box-shadow:inset 0 0 0 1px #34427a,inset 0 2px 0 rgba(160,180,255,.18)}
+.cell.g::after{content:"";position:absolute;width:20%;aspect-ratio:1;left:40%;top:40%;border-radius:50%;z-index:1}
+.cell.g.d::after{background:#c77d14}.cell.g.n::after{background:var(--moon)}
+.cell.h.d::after{background:#3fae84}.cell.h.n::after{background:var(--good)}
+.cell.bad::before{box-shadow:inset 0 0 0 3px var(--bad)!important}
+.board.huge .cell.bad::before{box-shadow:inset 0 0 0 2px var(--bad)!important}
+.cell.iso::before{animation:iso 1s infinite}
+@keyframes iso{50%{filter:brightness(1.6) saturate(.4)}}
+.cell.pulse{animation:hp .7s 2}
+@keyframes hp{50%{transform:scale(.8)}}
+.cell.flip{animation:flip .55s ease both;animation-delay:calc(var(--d)*35ms)}
+@keyframes flip{40%{transform:rotateY(90deg) scale(.9)}100%{transform:none}}
+.loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:13.5px}
+.loading svg{width:54px;height:54px;animation:spin 2.4s linear infinite}
+.rules{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:none}
+.rule{border-radius:12px;padding:6px 8px;font-size:12px;line-height:1.45;background:var(--panel);border:1px solid var(--line);display:flex;gap:6px;align-items:center;min-width:0;color:var(--muted);transition:all .2s}
+.rule i{flex:none;width:20px;height:20px;border-radius:7px;display:grid;place-items:center;background:var(--slot)}
+.rule i svg{width:13px;height:13px}
+.rule[data-s="ok"]{color:var(--good);border-color:rgba(98,214,165,.35)}
+.rule[data-s="bad"]{color:var(--bad);border-color:var(--bad);background:rgba(255,106,87,.1)}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:none}
+.tool{border:0;border-radius:15px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line),0 3px 0 #090d1a;padding:9px 6px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:14px}
+.tool:active{transform:translateY(2px);box-shadow:inset 0 0 0 1px var(--line)}
+.tool svg{width:19px;height:19px}
+.tool:disabled{opacity:.4}
+.tool .cost{display:flex;align-items:center;gap:2px;background:rgba(0,0,0,.35);border-radius:10px;font-size:11.5px;padding:1px 6px;font-weight:800}
+.tool .cost svg{width:12px;height:12px}
+.hintline{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.5em;flex:none;margin:-2px 0 0}
+.toast{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:rgba(10,14,28,.95);border:1px solid var(--line);
+  padding:8px 14px;border-radius:20px;font-size:13px;max-width:88%;text-align:center;pointer-events:none;transition:opacity .25s;z-index:9}
+
+/* floating / overlays */
+.pop.combo{color:#ff9a7a;font-size:32px;top:52%;text-shadow:0 0 24px rgba(255,138,92,.6)}
+.pop{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);font-family:var(--f-display);font-size:40px;pointer-events:none;z-index:8;white-space:nowrap;text-shadow:0 0 24px rgba(245,184,61,.6);color:var(--sun);animation:popup 1s ease-out forwards}
+@keyframes popup{0%{transform:translate(-50%,-30%) scale(.5);opacity:0}25%{transform:translate(-50%,-50%) scale(1.1);opacity:1}100%{transform:translate(-50%,-110%) scale(1);opacity:0}}
+.overlay{position:absolute;inset:0;z-index:10;background:rgba(8,11,22,.8);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px}
+.sheet{width:100%;max-width:360px;max-height:100%;overflow-y:auto;box-sizing:border-box;background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:24px;padding:20px 18px 16px;text-align:center;
+  display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 60px rgba(0,0,0,.55);animation:sheet .45s cubic-bezier(.2,1.3,.4,1)}
+@keyframes sheet{from{transform:scale(.85);opacity:0}}
+.sheet .k{font-size:13px;color:var(--muted);margin:0;line-height:1.7}
+.sheet h3{font-family:var(--f-display);font-weight:400;font-size:34px;margin:-4px 0;line-height:1.2}
+.bigstars{display:flex;justify-content:center;gap:6px}
+.bigstars svg{width:50px;height:50px;opacity:.18;transform:scale(.6)}
+.bigstars svg.on{opacity:1;animation:starin .5s cubic-bezier(.2,1.6,.4,1) forwards;animation-delay:calc(var(--i)*220ms + 150ms);transform:scale(.4)}
+.bigstars svg:nth-child(2){margin-top:-12px}
+@keyframes starin{to{transform:scale(1)}}
+.gemrows{display:flex;flex-direction:column;gap:5px;text-align:start}
+.gemrows div{display:flex;justify-content:space-between;background:rgba(0,0,0,.25);border-radius:11px;padding:6px 10px;font-size:13.5px}
+.gemrows b{color:var(--gem);display:flex;gap:4px;align-items:center}
+.gemrows b svg{width:15px;height:15px}
+.gemrows .tot{background:rgba(127,220,255,.12);font-weight:800}
+.sstats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.sstats div{background:rgba(0,0,0,.25);border-radius:13px;padding:8px}
+.sstats span{display:block;font-size:11.5px;color:var(--muted)}
+.sstats b{font-family:var(--f-display);font-weight:400;font-size:22px}
+.sbtns{display:flex;gap:8px}
+.btn{flex:1;border:0;border-radius:15px;padding:11px;font-family:var(--f-display);font-size:20px;line-height:1.2}
+.btn.pri{background:linear-gradient(180deg,#ffd27a,var(--sun) 55%,#d98f1c);color:#3a2306;box-shadow:0 4px 0 #8a5a12}
+.btn.gem{background:linear-gradient(180deg,#b7ecff,var(--gem) 55%,#3fa7d6);color:#062436;box-shadow:0 4px 0 #1f6d93}
+.btn.sec{background:var(--slot);box-shadow:inset 0 0 0 1px var(--line),0 4px 0 #090d1a}
+.btn:active{transform:translateY(3px);box-shadow:none}
+.newrec{align-self:center;background:var(--sun);color:#3a2306;font-weight:800;font-size:12.5px;border-radius:20px;padding:2px 12px}
+.howto{text-align:start;font-size:14px;line-height:1.8;color:var(--muted);display:grid;gap:8px}
+.howto b{color:var(--cream)}
+.demo{display:flex;gap:10px;justify-content:center;direction:ltr}
+.demo .mini{display:grid;grid-template-columns:repeat(2,26px);gap:3px;padding:4px;border-radius:9px;background:#141b33;position:relative}
+.demo .mini .cell{border-radius:6px}
+.demo .x{position:absolute;inset:-3px;border:2px solid var(--bad);border-radius:11px}
+@media (max-height:700px){.logo{width:92px;height:92px}.rules{display:none}#play{gap:8px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div id="app" dir="rtl" lang="fa">
+  <canvas id="stars" aria-hidden="true"></canvas>
+
+  <!-- MENU -->
+  <section id="menu" class="screen">
+    <div class="menu-top">
+      <div class="wallet"><span class="coin st num" id="wStar"></span><span class="coin gm num" id="wGem"></span></div>
+      <button class="rec" id="btnRec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>رکوردها</button>
+    </div>
+    <svg class="logo" viewBox="0 0 132 132" aria-hidden="true">
+      <defs>
+        <radialGradient id="sunG" cx="40%" cy="40%"><stop offset="0" stop-color="#fff6d8"/><stop offset=".5" stop-color="#f7e2ad"/><stop offset="1" stop-color="#e9b34f"/></radialGradient>
+        <linearGradient id="nightG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a3a78"/><stop offset="1" stop-color="#101736"/></linearGradient>
+      </defs>
+      <g class="spin"><g fill="#f5b83d" opacity=".55">
+        <path d="M66 2l4 14h-8z"/><path d="M66 130l4-14h-8z"/><path d="M2 66l14 4v-8z"/><path d="M130 66l-14 4v-8z"/>
+        <path d="M20.7 20.7l12.7 7.1-5.6 5.6z"/><path d="M111.3 111.3l-12.7-7.1 5.6-5.6z"/><path d="M111.3 20.7l-7.1 12.7-5.6-5.6z"/><path d="M20.7 111.3l7.1-12.7 5.6 5.6z"/></g></g>
+      <rect x="26" y="26" width="38" height="38" rx="9" fill="url(#sunG)"/><rect x="68" y="26" width="38" height="38" rx="9" fill="url(#nightG)"/>
+      <rect x="26" y="68" width="38" height="38" rx="9" fill="url(#nightG)"/><rect x="68" y="68" width="38" height="38" rx="9" fill="url(#sunG)"/>
+      <circle cx="80" cy="38" r="1.6" fill="#d9e1ff"/><circle cx="94" cy="50" r="1.2" fill="#c5d0ff"/><circle cx="40" cy="92" r="1.4" fill="#d9e1ff"/><circle cx="52" cy="80" r="1" fill="#c5d0ff"/>
+    </svg>
+    <h1>شب‌وروز</h1>
+    <p class="tag">صفحه را با روز و شب پر کن. ساده شروع می‌شود، ولی ذهنت را درگیر می‌کند.</p>
+    <div class="modes">
+      <button class="mode pz" id="mPz"><span class="ic" id="pzIc"></span><span><b id="pzTitle">معمای امشب</b><small id="pzSub"></small></span><span class="meta num" id="metaPz"></span></button>
+      <button class="mode journey" id="mJourney">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="#3a2306"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17l-6.1 3.4 1.5-6.8L2.2 9l6.9-.7z"/></svg></span>
+        <span><b>سفر</b><small>۱۰۰ مرحله، از سپیده تا نیمه‌شب</small></span><span class="meta num" id="metaStars"></span></button>
+      <button class="mode rush" id="mRush">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="#3a0d06"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg></span>
+        <span><b>شتاب</b><small>هر چه می‌توانی حل کن؛ هر حل وقت می‌خرد</small></span><span class="meta num" id="metaRush"></span></button>
+    </div>
+    <div class="links"><button class="copy" id="btnHow">قوانین بازی</button><button class="copy" id="btnSound">صدا: روشن</button></div>
+  </section>
+
+  <!-- LEVELS -->
+  <section id="levels" class="screen" hidden>
+    <div class="topbar">
+      <button class="back" data-back="menu" aria-label="بازگشت"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      <h2>سفر<small>هر مرحله را سریع‌تر حل کنی، ستاره‌ی بیشتری می‌گیری</small></h2>
+      <span class="coin st num" id="lvWallet"></span>
+    </div>
+    <div id="chapters"></div>
+  </section>
+
+  <!-- PUZZLE SET -->
+  <section id="pzset" class="screen" hidden>
+    <div class="topbar">
+      <button class="back" data-back="menu" aria-label="بازگشت"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      <h2 id="psTitle">معمای امشب<small id="psDate"></small></h2>
+      <span class="coin gm num" id="psWallet"></span>
+    </div>
+    <div class="period-hero" id="psHero"></div>
+    <div class="pzlist" id="pzlist"></div>
+    <p class="setbonus" id="setbonus"></p>
+  </section>
+
+  <!-- RECORDS -->
+  <section id="records" class="screen" hidden>
+    <div class="topbar">
+      <button class="back" data-back="menu" aria-label="بازگشت"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      <h2>رکوردها<small>هر بخش رکورد خودش را دارد</small></h2>
+    </div>
+    <div id="recbody"></div>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" class="screen" hidden>
+    <div class="topbar">
+      <button class="back" id="plBack" aria-label="بازگشت"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      <h2 id="plTitle"></h2>
+      <button class="pausebtn" id="plPause" aria-label="توقف بازی"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.2" height="14" rx="1.2"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.2"/></svg></button>
+      <div class="clock num" id="clock">۰:۰۰</div>
+    </div>
+    <div class="rushhud" id="rushbar" hidden>
+      <div class="rh-row">
+        <div class="rh-time"><b class="num" id="rTime">۶۰</b><span>ثانیه</span></div>
+        <div class="rh-score"><span>امتیاز</span><b class="num" id="rScore">۰</b></div>
+        <div class="rh-combo" id="rComboBox"><b class="num" id="rCombo" dir="ltr">×۱</b><span>زنجیره</span></div>
+      </div>
+      <div class="rh-bar"><i id="rBar"></i></div>
+      <div class="rh-meta"><span>حل‌شده: <b class="num" id="rSolved">۰</b></span><span id="rNext"></span></div>
+    </div>
+    <div class="boardwrap"><div class="board" id="board"></div><div class="loading" id="loading" hidden><svg viewBox="0 0 132 132"><rect x="26" y="26" width="38" height="38" rx="9" fill="#f7e2ad"/><rect x="68" y="26" width="38" height="38" rx="9" fill="#1e2a55"/><rect x="26" y="68" width="38" height="38" rx="9" fill="#1e2a55"/><rect x="68" y="68" width="38" height="38" rx="9" fill="#f7e2ad"/></svg><span>در حال چیدن معما…</span></div></div>
+    <p class="hintline" id="hintline"></p>
+    <div class="rules">
+      <div class="rule" id="r1"><i><svg viewBox="0 0 14 14"><rect x="1" y="1" width="5" height="5" rx="1" fill="#f7e2ad"/><rect x="8" y="1" width="5" height="5" rx="1" fill="#f7e2ad"/><rect x="1" y="8" width="5" height="5" rx="1" fill="#f7e2ad"/><rect x="8" y="8" width="5" height="5" rx="1" fill="#2a3a78"/></svg></i><span>بدون ۲×۲ یکدست</span></div>
+      <div class="rule" id="r2"><i><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="4.5" fill="#f5b83d"/></svg></i><span>روزها متصل</span></div>
+      <div class="rule" id="r3"><i><svg viewBox="0 0 14 14"><path d="M11.5 8.6A5 5 0 0 1 5.4 2.5a5 5 0 1 0 6.1 6.1z" fill="#9fb3ff"/></svg></i><span>شب‌ها متصل</span></div>
+    </div>
+    <div class="tools">
+      <button class="tool" id="tUndo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7h-5a5 5 0 0 0 0 10h6"/><path d="M15 3l4 4-4 4"/></svg>برگرد</button>
+      <button class="tool" id="tHint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>راهنما<span class="cost num" id="hintCost"></span></button>
+      <button class="tool" id="tClear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>پاک کن</button>
+    </div>
+    <div class="toast" id="toast" style="opacity:0"></div>
+  </section>
+
+  <div class="overlay" id="ov" hidden><div class="sheet" id="sheet"></div></div>
+</div>
+
+<script type="text/plain" id="engineSrc">function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function makeG(N){var n=N*N,nb=[],blocks=[];for(var i=0;i<n;i++){var r=(i/N)|0,c=i%N,a=[];if(r>0)a.push(i-N);if(r<N-1)a.push(i+N);if(c>0)a.push(i-1);if(c<N-1)a.push(i+1);nb.push(a);}
+  for(var r2=0;r2<N-1;r2++)for(var c2=0;c2<N-1;c2++){var t=r2*N+c2;blocks.push([t,t+1,t+N,t+N+1]);}
+  return{N:N,n:n,nb:nb,blocks:blocks,disc:new Int32Array(n),low:new Int32Array(n),cnt:new Int32Array(n),stk:new Int32Array(n),it:new Int32Array(n),par:new Int32Array(n),sepSum:new Int32Array(n),sepPieces:new Int32Array(n)};}
+/* deductions: 2x2 mono, 2x2 checkerboard, connectivity articulation. false = contradiction */
+function propagate(G,g){var changed=true,B=G.blocks,vs=[0,0,0,0];
+  while(changed){changed=false;
+    for(var b=0;b<B.length;b++){var q=B[b],ne=0,em=-1;for(var k=0;k<4;k++){vs[k]=g[q[k]];if(!vs[k]){ne++;em=k;}}
+      if(ne===0){if(vs[0]===vs[1]&&vs[1]===vs[2]&&vs[2]===vs[3])return false;if(vs[0]===vs[3]&&vs[1]===vs[2]&&vs[0]!==vs[1])return false;continue;}
+      if(ne!==1)continue;var s1=vs[em^1],s2=vs[em^2],o=vs[3-em];
+      if(s1===s2){g[q[em]]=(o===s1)?3-s1:s1;changed=true;}}
+    for(var col=1;col<=2;col++){var r=conn(G,g,col);if(r<0)return false;if(r>0)changed=true;}}
+  return true;}
+function conn(G,g,col){var n=G.n,disc=G.disc,low=G.low,cnt=G.cnt,stk=G.stk,it=G.it,par=G.par,nb=G.nb,sepSum=G.sepSum,sepPieces=G.sepPieces;
+  var start=-1,total=0;for(var i=0;i<n;i++)if(g[i]===col){total++;if(start<0)start=i;}
+  if(total<2)return 0;disc.fill(0);sepSum.fill(0);sepPieces.fill(0);
+  var time=0,sp=0,seenC=1;stk[sp++]=start;disc[start]=++time;low[start]=time;cnt[start]=1;it[start]=0;par[start]=-1;
+  while(sp){var v=stk[sp-1],adj=nb[v];
+    if(it[v]<adj.length){var w=adj[it[v]++],gw=g[w];if(gw!==col&&gw!==0)continue;
+      if(!disc[w]){disc[w]=low[w]=++time;cnt[w]=(gw===col)?1:0;if(gw===col)seenC++;it[w]=0;par[w]=v;stk[sp++]=w;}
+      else if(w!==par[v]&&disc[w]<low[v])low[v]=disc[w];}
+    else{sp--;var p=par[v];if(p>=0){if(low[v]<low[p])low[p]=low[v];cnt[p]+=cnt[v];if(low[v]>=disc[p]&&cnt[v]>0){sepSum[p]+=cnt[v];sepPieces[p]++;}}}}
+  if(seenC<total)return -1;var f=0;
+  for(var j=0;j<n;j++){if(g[j]!==0||!disc[j]||!sepPieces[j])continue;var pieces=sepPieces[j];if(total-sepSum[j]>0)pieces++;if(pieces>=2){g[j]=col;f++;}}
+  return f;}
+function full(g){for(var i=0;i<g.length;i++)if(!g[i])return false;return true;}
+function deduce(G,g,probe){if(!propagate(G,g))return false;if(!probe)return true;var again=true;
+  while(again){again=false;for(var i=0;i<G.n;i++){if(g[i])continue;
+      for(var v=1;v<=2;v++){var h=g.slice();h[i]=v;if(!propagate(G,h)){g[i]=3-v;if(!propagate(G,g))return false;again=true;break;}}}}
+  return true;}
+function okAll(G,g){for(var b=0;b<G.blocks.length;b++){var q=G.blocks[b],v=g[q[0]];if(v===g[q[1]]&&v===g[q[2]]&&v===g[q[3]])return false;}
+  for(var col=1;col<=2;col++){var s=-1,t=0;for(var i=0;i<G.n;i++)if(g[i]===col){t++;if(s<0)s=i;}if(!t)return false;
+    var seen=new Uint8Array(G.n),st=[s],c=1;seen[s]=1;while(st.length){var x=st.pop(),a=G.nb[x];for(var k=0;k<a.length;k++){var y=a[k];if(!seen[y]&&g[y]===col){seen[y]=1;c++;st.push(y);}}}if(c!==t)return false;}
+  return true;}
+function mazeGrid(N,rng){var M=N%2?N+2:N+1,g=new Int8Array(M*M).fill(2),vis=new Uint8Array(M*M),front=[];
+  var sr=1+2*Math.floor(rng()*((M-1)/2)),sc=1+2*Math.floor(rng()*((M-1)/2));g[sr*M+sc]=1;vis[sr*M+sc]=1;
+  function addF(r,c){var d=[[2,0],[-2,0],[0,2],[0,-2]];for(var k=0;k<4;k++){var rr=r+d[k][0],cc=c+d[k][1];if(rr>0&&cc>0&&rr<M&&cc<M&&!vis[rr*M+cc])front.push([r,c,rr,cc]);}}
+  addF(sr,sc);while(front.length){var i=rng()<.5?front.length-1:Math.floor(rng()*front.length);var e=front.splice(i,1)[0];if(vis[e[2]*M+e[3]])continue;
+    vis[e[2]*M+e[3]]=1;g[e[2]*M+e[3]]=1;g[((e[0]+e[2])/2)*M+(e[1]+e[3])/2]=1;addF(e[2],e[3]);}
+  var out=new Int8Array(N*N),o=(M-N)*(rng()<.5?1:0);for(var r=0;r<N;r++)for(var c=0;c<N;c++)out[r*N+c]=g[(r+o)*M+(c+o)];return out;}
+function artic(G,g,col){var n=G.n,disc=new Int32Array(n),low=new Int32Array(n),par=new Int32Array(n).fill(-1),it=new Int32Array(n),ap=new Uint8Array(n),kids=new Int32Array(n),time=0;
+  for(var s=0;s<n;s++){if(g[s]!==col||disc[s])continue;var st=[s];disc[s]=low[s]=++time;
+    while(st.length){var v=st[st.length-1],adj=G.nb[v];if(it[v]<adj.length){var w=adj[it[v]++];if(g[w]!==col)continue;if(!disc[w]){disc[w]=low[w]=++time;par[w]=v;kids[v]++;st.push(w);}else if(w!==par[v]&&disc[w]<low[v])low[v]=disc[w];}
+      else{st.pop();var p=par[v];if(p>=0){if(low[v]<low[p])low[p]=low[v];if(par[p]>=0&&low[v]>=disc[p])ap[p]=1;}}}
+    if(kids[s]>1)ap[s]=1;}
+  return ap;}
+function growGrid(G,rng,maxAttempts){var N=G.N;
+  for(var attempt=0;attempt<maxAttempts;attempt++){var g=new Int8Array(G.n).fill(2);g[Math.floor(rng()*G.n)]=1;
+    var mono=function(a,v){return g[a]===v&&g[a+1]===v&&g[a+N]===v&&g[a+N+1]===v;};
+    var blocksOf=function(i){var r=(i/N)|0,c=i%N,o=[];for(var dr=-1;dr<=0;dr++)for(var dc=-1;dc<=0;dc++){var rr=r+dr,cc=c+dc;if(rr>=0&&cc>=0&&rr<N-1&&cc<N-1)o.push(rr*N+cc);}return o;};
+    var nb2=0;for(var q=0;q<G.blocks.length;q++)if(mono(G.blocks[q][0],2))nb2++;
+    while(nb2>0){var ap=artic(G,g,2),cands=[],tot=0;
+      for(var i=0;i<G.n;i++){if(g[i]!==2||ap[i])continue;var adj=false,nbs=G.nb[i];for(var k=0;k<nbs.length;k++)if(g[nbs[k]]===1){adj=true;break;}if(!adj)continue;
+        var bl=blocksOf(i);g[i]=1;var bad=false;for(k=0;k<bl.length;k++)if(mono(bl[k],1)){bad=true;break;}g[i]=2;if(bad)continue;
+        var broke=0;for(k=0;k<bl.length;k++)if(mono(bl[k],2))broke++;var wt=1+broke*broke*4;cands.push(i,wt);tot+=wt;}
+      if(!cands.length)break;var x=rng()*tot,pick=cands[0];for(k=0;k<cands.length;k+=2){x-=cands[k+1];if(x<=0){pick=cands[k];break;}}
+      var bl2=blocksOf(pick);for(k=0;k<bl2.length;k++)if(mono(bl2[k],2))nb2--;g[pick]=1;}
+    if(nb2===0)return g;}
+  return null;}
+function randomGrid(G,rng){var g=growGrid(G,rng,400),tries=0;if(!g){do{g=mazeGrid(G.N,rng);tries++;}while(!okAll(G,g)&&tries<500);}
+  var steps=G.n*60;for(var s=0;s<steps;s++){var i=Math.floor(rng()*G.n);
+    if(rng()<.4){g[i]=3-g[i];if(!okAll(G,g))g[i]=3-g[i];}
+    else{var nb=G.nb[i],j=nb[Math.floor(rng()*nb.length)];if(g[i]===g[j])continue;g[i]=3-g[i];g[j]=3-g[j];if(!okAll(G,g)){g[i]=3-g[i];g[j]=3-g[j];}}}
+  if(rng()<.5)for(var k=0;k<G.n;k++)g[k]=3-g[k];
+  return g;}
+function logicSolves(G,giv,probe){var g=giv.slice();return deduce(G,g,probe)&&full(g);}
+function makePuzzle(N,seed,opt){opt=opt||{};var rng=mulberry(seed),G=makeG(N),sol=randomGrid(G,rng),probe=!!opt.probe,t0=Date.now();
+  var giv=new Int8Array(G.n),list=[],w=giv.slice();
+  while(true){deduce(G,w,probe);var und=[];for(var i=0;i<G.n;i++)if(!w[i])und.push(i);if(!und.length)break;
+    var c=und[Math.floor(rng()*und.length)];giv[c]=sol[c];w[c]=sol[c];list.push(c);}
+  for(var j=list.length-1;j>0;j--){var k=Math.floor(rng()*(j+1)),t=list[j];list[j]=list[k];list[k]=t;}
+  for(var a=0;a<list.length;a++){var p=probe&&(!opt.budget||Date.now()-t0<opt.budget);var id=list[a],v=giv[id];giv[id]=0;if(!logicSolves(G,giv,p))giv[id]=v;}
+  if(opt.extra){var em=[];for(var x=0;x<G.n;x++)if(!giv[x])em.push(x);for(var e=0;e<Math.round(G.n*opt.extra)&&em.length;e++){var y=em.splice(Math.floor(rng()*em.length),1)[0];giv[y]=sol[y];}}
+  return{N:N,sol:Array.from(sol),giv:Array.from(giv)};}
+
+</script>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const nf=(x,d=0)=>Number(x).toLocaleString('fa-IR',{maximumFractionDigits:d,minimumFractionDigits:d});
+const mmss=s=>{s=Math.max(0,Math.floor(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return(h?nf(h)+':'+nf(m).padStart(2,'۰'):nf(m))+':'+nf(ss).padStart(2,'۰');};
+const STAR='<svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17l-6.1 3.4 1.5-6.8L2.2 9l6.9-.7z" fill="#f5b83d" stroke="#b97a12" stroke-width=".8"/></svg>';
+const STAR_OFF='<svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17l-6.1 3.4 1.5-6.8L2.2 9l6.9-.7z" fill="#3a4466"/></svg>';
+const GEM='<svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z" fill="#7fdcff"/><path d="M6 3l3 6h6l3-6zM2 9h7l3 12zM22 9h-7l-3 12z" fill="#b9efff" opacity=".75"/><path d="M6 3h12l4 6-10 12L2 9zM2 9h20M9 9l3 12 3-12M6 3l3 6 3-6 3 6 3-6" fill="none" stroke="#2c7fb0" stroke-width=".9" stroke-linejoin="round"/></svg>';
+const SUN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#3a2306"/><g stroke="#3a2306" stroke-width="2" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></g></svg>';
+const MOON='<svg viewBox="0 0 24 24" fill="#0f1640"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>';
+const SUN_BIG='<svg class="big" viewBox="0 0 56 56"><circle cx="28" cy="28" r="12" fill="#f5b83d"/><circle cx="28" cy="28" r="17" fill="#f5b83d" opacity=".18"/><g stroke="#f5b83d" stroke-width="3" stroke-linecap="round"><path d="M28 4v5M28 47v5M4 28h5M47 28h5M11 11l3.5 3.5M41.5 41.5L45 45M45 11l-3.5 3.5M14.5 41.5L11 45"/></g></svg>';
+const MOON_BIG='<svg class="big" viewBox="0 0 56 56"><circle cx="28" cy="28" r="20" fill="#9fb3ff" opacity=".12"/><path d="M40 33A15 15 0 0 1 22.5 13.5 15 15 0 1 0 40 33z" fill="#c9d4ff"/><circle cx="44" cy="12" r="1.4" fill="#d9e1ff"/><circle cx="12" cy="44" r="1.1" fill="#d9e1ff"/><circle cx="47" cy="40" r="1" fill="#d9e1ff"/></svg>';
+
+/* ---------- sky ---------- */
+(function sky(){const c=$('stars');const dpr=Math.min(devicePixelRatio||1,2);let pts=[];
+  function size(){c.width=c.clientWidth*dpr;c.height=c.clientHeight*dpr;pts=Array.from({length:70},()=>({x:Math.random(),y:Math.random()*.75,r:Math.random()*1.2+.3,p:Math.random()*6.28}));}
+  size();addEventListener('resize',size);const x=c.getContext('2d');const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function draw(t){x.clearRect(0,0,c.width,c.height);for(const s of pts){const a=.22+.35*(1+Math.sin(t/900+s.p))/2;x.fillStyle=`rgba(210,220,255,${a})`;x.beginPath();x.arc(s.x*c.width,s.y*c.height,s.r*dpr,0,7);x.fill();}
+    if(!reduce)requestAnimationFrame(draw);}
+  requestAnimationFrame(draw);})();
+
+/* ---------- save ---------- */
+const KEY='shabroz.v2';
+const fresh=()=>({stars:{},spentStars:0,giftStars:5,gem:{earned:0,spent:0,gift:3},
+  rush:{best:0,most:0,combo:1,runs:0},periods:{},prec:{day:{best:{},sets:0,gems:0,solved:0},night:{best:{},sets:0,gems:0,solved:0}},prog:{},sound:true});
+let S=(()=>{try{const v=JSON.parse(localStorage.getItem(KEY));return v?Object.assign(fresh(),v):fresh()}catch(e){return fresh()}})();
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const starsEarned=()=>Object.values(S.stars).reduce((a,b)=>a+b,0);
+const starBal=()=>starsEarned()+S.giftStars-S.spentStars;
+const gemBal=()=>S.gem.earned+S.gem.gift-S.gem.spent;
+
+/* ---------- rng / time ---------- */
+function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const jal=d=>{try{return d.toLocaleDateString('fa-IR-u-ca-persian',{weekday:'long',day:'numeric',month:'long'})}catch(e){return ''}};
+function period(){const d=new Date(),h=d.getHours(),isDay=h>=6&&h<18;const base=new Date(d);if(!isDay&&h<6)base.setDate(base.getDate()-1);
+  const end=new Date(d);if(isDay)end.setHours(18,0,0,0);else{if(h>=18)end.setDate(end.getDate()+1);end.setHours(6,0,0,0);}
+  return{kind:isDay?'day':'night',key:ymd(base)+(isDay?'-day':'-night'),title:isDay?'معمای امروز':'معمای امشب',date:jal(base),end};}
+
+/* ---------- sound ---------- */
+let ac=null;
+function tone(f,dur,type='sine',vol=.1,delay=0){if(!S.sound)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();
+  const t=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+dur+.02);}catch(e){}}
+const SCALE=[523,587,659,784,880,1047,1175,1319];
+const sfx={day:k=>tone(SCALE[k%8],.12,'triangle',.07),night:k=>tone(SCALE[k%8]/2,.14,'sine',.09),clear:()=>tone(300,.06,'sine',.04),bad:()=>tone(140,.18,'square',.05),
+  hint:()=>{tone(988,.1,'sine',.07);tone(1319,.18,'sine',.06,.08);},win:()=>[523,659,784,1047,1319].forEach((f,i)=>tone(f,.3,'triangle',.08,i*.08)),
+  gem:()=>[1568,2093,2637].forEach((f,i)=>tone(f,.25,'sine',.06,.5+i*.09)),rush:()=>[784,988,1175].forEach((f,i)=>tone(f,.18,'triangle',.08,i*.06)),
+  over:()=>[440,349,262].forEach((f,i)=>tone(f,.35,'sawtooth',.04,i*.15)),ui:()=>tone(660,.08,'triangle',.07)};
+const buzz=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
+
+/* ---------- puzzle factory (worker + cache) ---------- */
+const SRC=$('engineSrc').textContent;
+const ENG=new Function(SRC+';return{makePuzzle:makePuzzle};')();
+let worker=null;try{worker=new Worker(URL.createObjectURL(new Blob([SRC+';onmessage=function(e){var d=e.data;postMessage({id:d.id,p:makePuzzle(d.N,d.seed,d.opt)});};'],{type:'text/javascript'})));}catch(e){worker=null;}
+const pending=new Map(),mem=new Map();let reqId=0;
+if(worker){worker.onmessage=e=>{const r=pending.get(e.data.id);if(r){pending.delete(e.data.id);r(e.data.p);}};worker.onerror=()=>{worker=null;for(const [id,r] of pending){pending.delete(id);r(null);}};}
+const PZK='shabroz.pz';
+let pzStore=(()=>{try{return JSON.parse(localStorage.getItem(PZK))||{}}catch(e){return{}}})();
+function pzSave(){try{const keys=Object.keys(pzStore);if(keys.length>140){keys.sort((a,b)=>pzStore[a].t-pzStore[b].t).slice(0,keys.length-140).forEach(k=>delete pzStore[k]);}localStorage.setItem(PZK,JSON.stringify(pzStore))}catch(e){}}
+const enc=a=>a.join(''),dec=s=>Array.from(s,Number);
+function getPuzzle(key,N,seed,opt,cache=true){
+  if(mem.has(key))return mem.get(key);
+  if(cache&&pzStore[key]){const v=pzStore[key];const p=Promise.resolve({N,giv:dec(v.g),sol:dec(v.s)});mem.set(key,p);return p;}
+  const p=new Promise(res=>{const done=v=>{if(!v){v=ENG.makePuzzle(N,seed,opt);}if(cache){pzStore[key]={g:enc(v.giv),s:enc(v.sol),t:Date.now()};pzSave();}res(v);};
+    if(worker){const id=++reqId;pending.set(id,done);worker.postMessage({id,N,seed,opt});}else setTimeout(()=>done(null),30);});
+  mem.set(key,p);return p;}
+
+/* ---------- validity (main thread) ---------- */
+function makeG(N){const n=N*N,nb=[];for(let i=0;i<n;i++){const r=(i/N)|0,c=i%N,a=[];if(r>0)a.push(i-N);if(r<N-1)a.push(i+N);if(c>0)a.push(i-1);if(c<N-1)a.push(i+1);nb.push(a);}return{N,n,nb};}
+const mono=(G,g,a)=>{const v=g[a];return v&&g[a+1]===v&&g[a+G.N]===v&&g[a+G.N+1]===v;};
+function sqBadAt(G,g,i){const r=(i/G.N)|0,c=i%G.N;for(let dr=-1;dr<=0;dr++)for(let dc=-1;dc<=0;dc++){const rr=r+dr,cc=c+dc;if(rr>=0&&cc>=0&&rr<G.N-1&&cc<G.N-1&&mono(G,g,rr*G.N+cc))return true;}return false;}
+function badCells(G,g){const s=new Set();for(let r=0;r<G.N-1;r++)for(let c=0;c<G.N-1;c++){const a=r*G.N+c;if(mono(G,g,a))[a,a+1,a+G.N,a+G.N+1].forEach(x=>s.add(x));}return s;}
+function colorState(G,g,col){const cells=[];for(let i=0;i<G.n;i++)if(g[i]===col)cells.push(i);if(!cells.length)return{state:'none'};
+  const reach=(s,pass)=>{const seen=new Uint8Array(G.n),st=[s];seen[s]=1;while(st.length){const i=st.pop();for(const j of G.nb[i])if(!seen[j]&&pass(g[j])){seen[j]=1;st.push(j);}}return seen;};
+  const a=reach(cells[0],v=>v===col);if(cells.every(i=>a[i]))return{state:'ok'};
+  const comp=new Int16Array(G.n).fill(-1);let k=0;const sizes=[];for(const c of cells)if(comp[c]<0){const s=reach(c,v=>v===col||v===0);let cnt=0;for(const d of cells)if(s[d]){comp[d]=k;cnt++;}sizes.push(cnt);k++;}
+  if(k===1)return{state:'open'};const big=sizes.indexOf(Math.max(...sizes));return{state:'bad',iso:new Set(cells.filter(c=>comp[c]!==big))};}
+
+/* ---------- content ---------- */
+const CHAPTERS=[
+  ['سپیده','آشنایی با قوانین',{N:5,extra:.18}],['بامداد','صفحه‌ی ۶×۶',{N:6,extra:.1}],['چاشت','کمک کمتر',{N:6,extra:0,probe:true}],
+  ['نیمروز','صفحه‌ی ۷×۷',{N:7,extra:.06}],['پسین','فکر بیشتر',{N:7,extra:0,probe:true}],['عصر','صفحه‌ی ۸×۸',{N:8,extra:.04}],
+  ['غروب','گره‌های سخت',{N:8,extra:0,probe:true}],['شامگاه','صفحه‌ی ۹×۹',{N:9,extra:.03,probe:true}],['شب','بی‌رحم',{N:9,extra:0,probe:true}],['نیمه‌شب','صفحه‌ی ۱۰×۱۰',{N:10,extra:0,probe:true}]];
+const LEVELS=100;
+const lvSpec=n=>CHAPTERS[Math.floor((n-1)/10)][2];
+const PAR={5:40,6:70,7:110,8:160,9:220,10:300};
+const unlocked=n=>n===1||(S.stars[n-1]||0)>0;
+const PZ_SIZES=[7,10,15];
+const PZ_BASE={7:1,10:2,15:4},PZ_PAR={7:240,10:600,15:1500},SET_BONUS=3;
+const pzOpt=N=>N===15?{probe:true,budget:5000}:{probe:true};
+
+/* ---------- wallet ui ---------- */
+function walletUI(bump){const sb=starBal(),gb=gemBal();
+  $('wStar').innerHTML=STAR+nf(sb);$('wGem').innerHTML=GEM+nf(gb);$('lvWallet').innerHTML=STAR+nf(sb);$('psWallet').innerHTML=GEM+nf(gb);
+  if(bump)for(const id of bump){const e=$(id);if(e){e.classList.remove('bump');void e.offsetWidth;e.classList.add('bump');}}}
+
+/* ---------- screens ---------- */
+const SCREENS=['menu','levels','pzset','records','play'];
+function show(id){for(const s of SCREENS)$(s).hidden=s!==id;$(id).scrollTop=0;}
+let menuTimer=0;
+function showMenu(){stopPlay();show('menu');walletUI();const pr=period();
+  $('app').classList.toggle('dayside',pr.kind==='day');
+  $('mPz').classList.toggle('day',pr.kind==='day');$('pzIc').innerHTML=pr.kind==='day'?SUN:MOON;$('pzTitle').textContent=pr.title;
+  $('pzSub').textContent='سه معمای خیلی سخت: ۷×۷، ۱۰×۱۰، ۱۵×۱۵';
+  const ps=S.periods[pr.key];const solved=ps?Object.keys(ps.solved||{}).length:0;$('metaPz').innerHTML=nf(solved)+'/'+nf(3)+' '+GEM;
+  $('metaStars').innerHTML=nf(starsEarned())+'<span style="opacity:.55">/'+nf(LEVELS*3)+'</span> '+STAR;
+  $('metaRush').textContent=S.rush.best?'رکورد '+nf(S.rush.best):'';
+  $('btnSound').textContent='صدا: '+(S.sound?'روشن':'خاموش');
+  clearInterval(menuTimer);menuTimer=setInterval(()=>{if(!$('menu').hidden&&period().key!==pr.key)showMenu();},30000);
+  // warm up current period puzzles in background
+  setTimeout(()=>prefetchPeriod(pr),400);}
+
+function showLevels(){stopPlay();show('levels');walletUI();
+  let next=0;for(let n=1;n<=LEVELS;n++)if(!S.stars[n]){next=n;break;}
+  $('chapters').innerHTML=CHAPTERS.map((ch,ci)=>{const from=ci*10+1;let cs=0;for(let k=0;k<10;k++)cs+=S.stars[from+k]||0;const sp=ch[2];
+    return `<div class="chapter" id="ch${ci}"><h3>${ch[0]}<small>${ch[1]}</small><span class="cs num">${STAR}${nf(cs)}/${nf(30)}</span></h3><div class="lvgrid">${
+      Array.from({length:10},(_,k)=>{const n=from+k,st=S.stars[n]||0,ok=unlocked(n);
+        return `<button class="lv${n===next&&ok?' next':''}" data-n="${n}" ${ok?'':'disabled'} aria-label="مرحله ${nf(n)}"><b>${nf(n)}</b><span class="st">${ok&&st?[0,1,2].map(i=>i<st?STAR:STAR_OFF).join(''):''}</span></button>`;}).join('')}</div></div>`;}).join('');
+  if(next){const ch=$('ch'+Math.floor((next-1)/10));if(ch&&next>10)setTimeout(()=>ch.scrollIntoView({block:'start'}),30);}}
+$('chapters').addEventListener('click',e=>{const b=e.target.closest('.lv');if(b&&!b.disabled){sfx.ui();playLevel(+b.dataset.n);}});
+
+let psTimer=0,curPeriod=null;
+function showPzSet(){stopPlay();show('pzset');walletUI();const pr=period();curPeriod=pr;
+  $('app').classList.toggle('dayside',pr.kind==='day');
+  $('psTitle').innerHTML=`${pr.title}<small>${pr.date}</small>`;
+  const tick=()=>{const left=(pr.end-new Date())/1000;if(left<=0){clearInterval(psTimer);showPzSet();return;}const el=$('psCd');if(el)el.textContent=mmss(left);};
+  const ps=S.periods[pr.key]||{solved:{},gems:0};
+  $('psHero').className='period-hero '+pr.kind;
+  $('psHero').innerHTML=`${pr.kind==='day'?SUN_BIG:MOON_BIG}<div class="t"><b>${pr.kind==='day'?'سه معمای روز':'سه معمای شب'}</b><span>${pr.kind==='day'?'از ۶ صبح تا ۶ عصر':'از ۶ عصر تا ۶ صبح'} · الماس این دوره: ${nf(ps.gems||0)}</span></div><div class="cd num"><small>تا پایان</small><span id="psCd"></span></div>`;
+  clearInterval(psTimer);psTimer=setInterval(tick,1000);tick();
+  $('pzlist').innerHTML=PZ_SIZES.map((N,i)=>{const solvedT=ps.solved&&ps.solved[N];const prevOk=i===0||(ps.solved&&ps.solved[PZ_SIZES[i-1]]!==undefined);
+    const prog=S.prog[pr.key+':'+N];
+    const state=solvedT!==undefined?`<span class="state">حل شد در ${mmss(solvedT)}</span>`:!prevOk?`<small>اول معمای ${nf(PZ_SIZES[i-1])}×${nf(PZ_SIZES[i-1])} را حل کن</small>`:prog?`<span class="state go">ادامه بده · ${mmss(prog.el/1000)}</span>`:`<span class="state go">آماده</span>`;
+    return `<button class="pzc${solvedT!==undefined?' done':''}" data-n="${N}" ${prevOk?'':'disabled'}><span class="sz num"><i style="background-size:${62/N*2}px ${62/N*2}px"></i><span>${nf(N)}×${nf(N)}</span></span><span><b>${['اول','دوم','سوم'][i]}: ${['گرم کردن','نبرد','غول'][i]}</b>${state}</span><span class="rw num"><span class="g">${nf(PZ_BASE[N])}${GEM}</span><em>+${nf(1)} زیر ${mmss(PZ_PAR[N])}</em></span></button>`;}).join('');
+  $('setbonus').innerHTML=ps.bonus?`هر سه معما حل شد و <b>${nf(SET_BONUS)} الماس</b> جایزه گرفتی. دوره‌ی بعد ${pr.kind==='day'?'ساعت ۶ عصر':'ساعت ۶ صبح'} باز می‌شود.`:`هر سه را در همین دوره حل کنی، <b>${nf(SET_BONUS)} الماس</b> جایزه می‌گیری.<br>راهنما در این بخش ۱ الماس خرج دارد.`;
+  prefetchPeriod(pr);}
+$('pzlist').addEventListener('click',e=>{const b=e.target.closest('.pzc');if(b&&!b.disabled){sfx.ui();playPz(curPeriod,+b.dataset.n);}});
+function prefetchPeriod(pr){(async()=>{for(const N of PZ_SIZES)await getPuzzle(pr.key+':'+N,N,hash(pr.key+'#'+N),pzOpt(N));})();}
+
+function showRecords(){stopPlay();show('records');
+  const three=Object.values(S.stars).filter(v=>v===3).length;let reached=0;for(let n=1;n<=LEVELS;n++)if(S.stars[n])reached=n;
+  const pr=(k,title,icon)=>{const r=S.prec[k];const b=N=>r.best[N]!==undefined?mmss(r.best[N]):'—';
+    return `<div class="reccard"><h3>${icon}${title}</h3><div class="rgrid">
+      <div><span>بهترین ۷×۷</span><b class="num">${b(7)}</b></div><div><span>بهترین ۱۰×۱۰</span><b class="num">${b(10)}</b></div><div><span>بهترین ۱۵×۱۵</span><b class="num">${b(15)}</b></div>
+      <div><span>معمای حل‌شده</span><b class="num">${nf(r.solved)}</b></div><div><span>دوره‌ی کامل</span><b class="num">${nf(r.sets)}</b></div><div><span>الماس گرفته</span><b class="num">${nf(r.gems)}</b></div></div></div>`;};
+  $('recbody').innerHTML=`
+  <div class="reccard"><h3>${STAR}سفر</h3><div class="rgrid">
+    <div><span>ستاره‌ی جمع‌شده</span><b class="num">${nf(starsEarned())}/${nf(300)}</b></div><div><span>سه‌ستاره</span><b class="num">${nf(three)}</b></div><div><span>دورترین مرحله</span><b class="num">${reached?nf(reached):'—'}</b></div>
+    <div><span>ستاره‌ی خرج‌شده</span><b class="num">${nf(S.spentStars)}</b></div><div><span>موجودی</span><b class="num">${nf(starBal())}</b></div><div><span>فصل</span><b>${reached?CHAPTERS[Math.floor((Math.max(reached,1)-1)/10)][0]:'—'}</b></div></div></div>
+  <div class="reccard"><h3><svg viewBox="0 0 24 24" fill="#ff8a5c"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>شتاب</h3><div class="rgrid">
+    <div><span>بهترین امتیاز</span><b class="num">${nf(S.rush.best)}</b></div><div><span>بیشترین حل</span><b class="num">${nf(S.rush.most)}</b></div><div><span>بلندترین زنجیره</span><b class="num">×${nf(S.rush.combo)}</b></div></div></div>
+  ${pr('day','معمای امروز','<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#f5b83d"/><g stroke="#f5b83d" stroke-width="2" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></g></svg>')}
+  ${pr('night','معمای امشب','<svg viewBox="0 0 24 24" fill="#c9d4ff"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>')}
+  <div class="reccard"><h3>${GEM}الماس</h3><div class="rgrid"><div><span>کل الماس گرفته</span><b class="num">${nf(S.gem.earned)}</b></div><div><span>خرج‌شده</span><b class="num">${nf(S.gem.spent)}</b></div><div><span>موجودی</span><b class="num">${nf(gemBal())}</b></div></div></div>
+  <p class="setbonus">رکوردها روی همین گوشی ذخیره می‌شوند.</p>`;}
+
+/* ---------- play ---------- */
+let P=null,clockId=0,toastT=0;
+function toast(m){const t=$('toast');t.textContent=m;t.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>t.style.opacity=0,2400);}
+function stopPlay(){clearInterval(clockId);$('play').classList.remove('danger');document.querySelectorAll('.countdown').forEach(e=>e.remove());clearInterval(psTimer);if(P&&P.mode==='pz'&&!P.done)saveProg();if(P)P.dead=true;P=null;$('ov').hidden=true;}
+function elapsedMs(){if(!P)return 0;return P.el+(P.run?performance.now()-P.runAt:0);}
+function pauseClock(){if(P&&P.run){P.el+=performance.now()-P.runAt;P.run=false;}}
+function resumeClock(){if(P&&!P.run&&!P.done){P.runAt=performance.now();P.run=true;}}
+
+async function loadPuzzle(cfg){
+  const token={};P={...cfg,token,loading:true,dead:false,hist:[],done:false,placed:0,el:cfg.el||0,run:false,runAt:0};const my=P;
+  $('board').innerHTML='';$('board').className='board';$('board').hidden=true;$('loading').hidden=false;hl('');
+  const pz=await getPuzzle(cfg.key,cfg.N,cfg.seed,cfg.opt,cfg.cache!==false);
+  if(P!==my||my.dead)return null;
+  P.G=makeG(cfg.N);P.sol=pz.sol;P.given=Uint8Array.from(pz.giv,v=>v?1:0);P.hinted=new Uint8Array(P.G.n);P.grid=Int8Array.from(pz.giv);
+  if(cfg.restore){const r=cfg.restore;const g=dec(r.g);if(g.length===P.G.n){P.grid=Int8Array.from(g);if(r.h)dec(r.h).forEach((v,i)=>{if(v){P.hinted[i]=1;}});P.placed=1;}}
+  P.loading=false;$('loading').hidden=true;$('board').hidden=false;buildBoard();if(P.counting)$('board').classList.add('veil');resumeClock();render();return P;}
+
+function buildBoard(){const b=$('board'),N=P.G.N;b.className='board'+(N>=13?' huge':N>=9?' big':'');b.style.gridTemplateColumns=`repeat(${N},1fr)`;b.innerHTML='';
+  const frag=document.createDocumentFragment();for(let i=0;i<P.G.n;i++){const d=document.createElement('div');d.className='cell';d.dataset.i=i;d.style.setProperty('--d',(i%N)+((i/N)|0));frag.appendChild(d);}b.appendChild(frag);}
+
+function render(){if(!P||!P.G)return;const G=P.G,g=P.grid,bad=badCells(G,g),w=colorState(G,g,1),n=colorState(G,g,2);
+  const iso=new Set([...(w.iso||[]),...(n.iso||[])]);const cells=$('board').children;
+  for(let i=0;i<G.n;i++){const lock=P.given[i]||P.hinted[i];cells[i].className='cell'+(g[i]===1?' d':g[i]===2?' n':'')+(P.given[i]?' g':P.hinted[i]?' g h':'')+(bad.has(i)?' bad':'')+(iso.has(i)?' iso':'');}
+  const full=g.every(v=>v);
+  $('r1').dataset.s=bad.size?'bad':full?'ok':'';$('r2').dataset.s=w.state==='bad'?'bad':(w.state==='ok'&&full)?'ok':'';$('r3').dataset.s=n.state==='bad'?'bad':(n.state==='ok'&&full)?'ok':'';
+  $('tUndo').disabled=!P.hist.length||P.done;$('tHint').disabled=P.done;
+  if(bad.size)hl('یک مربع ۲×۲ یکدست شده. یکی از خانه‌هایش را عوض کن.');
+  else if(w.state==='bad')hl('چند خانه‌ی روز از بقیه جدا افتاده‌اند و دیگر به هم نمی‌رسند.');
+  else if(n.state==='bad')hl('چند خانه‌ی شب محاصره شده‌اند و دیگر به بقیه نمی‌رسند.');
+  else if(!P.done)hl(P.placed?'خانه‌های خالی: '+nf(g.filter(v=>!v).length):'بزن تا روز بگذاری، دوباره بزن تا شب شود. انگشتت را بکش تا چند خانه را با هم رنگ کنی.');
+  if(full&&!bad.size&&w.state==='ok'&&n.state==='ok'&&!P.done)win();}
+function hl(t){$('hintline').textContent=t;}
+function hintCostUI(){const gem=P&&P.mode==='pz';$('hintCost').innerHTML=nf(1)+(gem?GEM:STAR);}
+
+/* input */
+let stroke=null;
+const cellAt=(x,y)=>{const el=document.elementFromPoint(x,y);return el&&el.classList&&el.classList.contains('cell')&&el.parentNode===$('board')?+el.dataset.i:-1;};
+const locked=i=>P.given[i]||P.hinted[i];
+$('board').addEventListener('pointerdown',e=>{if(!P||P.done||!P.G||P.userPaused||P.counting)return;const i=cellAt(e.clientX,e.clientY);if(i<0)return;e.preventDefault();
+  if(locked(i)){const c=$('board').children[i];c.classList.remove('pulse');void c.offsetWidth;c.classList.add('pulse');buzz(15);return;}
+  stroke={v:(P.grid[i]+1)%3,snap:P.grid.slice(),changed:false,k:0,P};paint(i);try{$('board').setPointerCapture(e.pointerId)}catch(_){}});
+$('board').addEventListener('pointermove',e=>{if(!stroke||!P||P.done||stroke.P!==P)return;const i=cellAt(e.clientX,e.clientY);if(i>=0&&!locked(i)&&P.grid[i]!==stroke.v)paint(i);});
+const endStroke=()=>{if(!stroke)return;if(stroke.changed&&stroke.P===P&&P&&!P.done){P.hist.push(stroke.snap);if(P.mode==='pz')saveProg();}stroke=null;if(P)render();};
+addEventListener('pointerup',endStroke);addEventListener('pointercancel',endStroke);
+function paint(i){P.grid[i]=stroke.v;stroke.changed=true;P.placed++;const k=stroke.k++;stroke.v===1?sfx.day(k):stroke.v===2?sfx.night(k):sfx.clear();buzz(6);
+  if(sqBadAt(P.G,P.grid,i)){sfx.bad();buzz(35);}render();}
+
+$('tUndo').onclick=()=>{if(!P||!P.hist.length||P.done)return;if(P.userPaused||P.counting)return;P.grid=P.hist.pop();tone(400,.06,'sine',.05);render();if(P.mode==='pz')saveProg();};
+$('tClear').onclick=()=>{if(!P||P.done||!P.G)return;if(P.userPaused||P.counting)return;const g=Int8Array.from(P.grid,(v,i)=>locked(i)?v:0);if(g.every((v,i)=>v===P.grid[i]))return;P.hist.push(P.grid.slice());P.grid=g;tone(250,.12,'sine',.05);render();if(P.mode==='pz')saveProg();};
+$('tHint').onclick=()=>{if(!P||P.done||!P.G)return;if(P.userPaused||P.counting)return;const gem=P.mode==='pz';
+  if(gem?gemBal()<1:starBal()<1){sfx.bad();toast(gem?'الماس کافی نداری. معماهای روز و شب را حل کن تا الماس بگیری.':'ستاره‌ی کافی نداری. مرحله‌های سفر را حل کن تا ستاره بگیری.');return;}
+  let i=-1;for(let k=0;k<P.G.n;k++)if(P.grid[k]&&!locked(k)&&P.grid[k]!==P.sol[k]){i=k;break;}
+  if(i<0){const e=[];P.grid.forEach((v,k)=>{if(!v)e.push(k)});if(!e.length)return;i=e[Math.floor(Math.random()*e.length)];}
+  if(gem)S.gem.spent++;else S.spentStars++;P.hintsUsed=(P.hintsUsed||0)+1;persist();walletUI();
+  P.hist.push(P.grid.slice());P.grid[i]=P.sol[i];P.hinted[i]=1;sfx.hint();toast((gem?'۱ الماس':'۱ ستاره')+' خرج شد');render();if(P&&P.mode==='pz'&&!P.done)saveProg();
+  const c=$('board').children[i];if(c)c.classList.add('pulse');};
+
+/* clock */
+function tickClock(){if(!P||(P.loading&&P.mode!=='rush'))return;const el=$('clock');
+  if(P.mode==='rush'){if(P.counting)return;const left=Math.max(0,P.deadline-(P.paused?P.pauseAt:performance.now()));const sec=Math.ceil(left/1000);
+    $('rTime').textContent=nf(sec);$('rBar').style.width=Math.min(100,left/600)+'%';$('play').classList.toggle('danger',left<10000&&left>0&&!P.paused);
+    if(left<=5000&&left>0&&!P.paused&&sec!==R.lastBeep){R.lastBeep=sec;tone(1200,.06,'square',.04);buzz(10);}
+    if(left<=0&&!R.over)rushOver();return;}
+  if(!P.done)el.textContent=mmss(elapsedMs()/1000);el.classList.remove('hot');
+  if(P.mode==='pz'&&!P.done&&++P.saveTick%25===0)saveProg();}
+function startClock(){clearInterval(clockId);clockId=setInterval(tickClock,100);$('clock').hidden=P&&P.mode==='rush';$('play').classList.remove('danger');tickClock();}
+function pauseGame(auto){if(!P||P.done||P.loading||P.userPaused||P.counting||$('play').hidden)return;P.userPaused=true;pauseClock();
+  if(P.mode==='rush'&&!P.paused){P.paused=true;P.pauseAt=performance.now();}if(P.mode==='pz')saveProg();
+  $('board').classList.add('veil');$('play').classList.remove('danger');tone(440,.1,'sine',.06);
+  const secs=P.mode==='rush'?(P.deadline-P.pauseAt)/1000:elapsedMs()/1000;
+  sheet(`<p class="k">${auto?'وقتی بیرون رفتی بازی متوقف شد':'بازی متوقف شد'}</p><h3>مکث</h3>
+    <div class="sstats"><div><span>${P.mode==='rush'?'وقت باقی‌مانده':'زمان تا اینجا'}</span><b class="num">${mmss(secs)}</b></div><div><span>${P.mode==='rush'?'امتیاز':'خانه‌ی خالی'}</span><b class="num">${P.mode==='rush'?nf(R.score):nf(P.grid?P.grid.filter(v=>!v).length:0)}</b></div></div>
+    <div class="sbtns"><button class="btn sec" id="sQuit">خروج</button><button class="btn sec" id="sRestart">از نو</button></div>
+    <button class="btn pri" id="sResume">ادامه</button>`);
+  $('sResume').onclick=resumeGame;$('sQuit').onclick=()=>{closeSheet();$('board').classList.remove('veil');$('plBack').onclick();};
+  $('sRestart').onclick=()=>{closeSheet();$('board').classList.remove('veil');const m=P.mode;
+    if(m==='journey')playLevel(P.lvl);else if(m==='rush'){R.over=true;startRush();}else{const k=P.key;delete S.prog[k];persist();const pr=P.pr,N=P.N;P.dead=true;P=null;playPz(pr,N);}};}
+function resumeGame(){if(!P)return;closeSheet();$('board').classList.remove('veil');P.userPaused=false;resumeClock();
+  if(P.mode==='rush'&&P.paused){P.deadline+=performance.now()-P.pauseAt;P.paused=false;}tone(660,.08,'triangle',.07);}
+$('plPause').onclick=()=>pauseGame(false);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&P)pauseGame(true);});
+
+/* modes */
+function playLevel(n){const sp=lvSpec(n);show('play');$('play').classList.remove('danger');$('rushbar').hidden=true;$('app').classList.remove('dayside');
+  const ch=CHAPTERS[Math.floor((n-1)/10)];$('plTitle').innerHTML=`مرحله‌ی ${nf(n)}<small>${ch[0]} · ${nf(sp.N)}×${nf(sp.N)}</small>`;
+  stopPlayKeep();loadPuzzle({mode:'journey',lvl:n,N:sp.N,key:'lvl:'+n,seed:hash('lvl2-'+n),opt:{extra:sp.extra,probe:!!sp.probe}}).then(()=>{hintCostUI();});startClock();hintCostUI();
+  if(n<LEVELS){const s2=lvSpec(n+1);getPuzzle('lvl:'+(n+1),s2.N,hash('lvl2-'+(n+1)),{extra:s2.extra,probe:!!s2.probe});}}
+function stopPlayKeep(){clearInterval(clockId);clearInterval(psTimer);if(P)P.dead=true;P=null;$('ov').hidden=true;}
+function playPz(pr,N){show('play');$('rushbar').hidden=true;$('app').classList.toggle('dayside',pr.kind==='day');
+  $('plTitle').innerHTML=`${nf(N)}×${nf(N)}<small>${pr.title} · ${pr.date}</small>`;
+  const k=pr.key+':'+N,prog=S.prog[k];const solved=S.periods[pr.key]&&S.periods[pr.key].solved&&S.periods[pr.key].solved[N]!==undefined;
+  stopPlayKeep();loadPuzzle({mode:'pz',pr,N,key:k,seed:hash(pr.key+'#'+N),opt:pzOpt(N),el:prog&&!solved?prog.el:0,restore:prog&&!solved?prog:null,saveTick:0,already:solved}).then(()=>hintCostUI());startClock();hintCostUI();}
+function saveProg(){if(!P||P.mode!=='pz'||!P.G||P.done||P.already)return;S.prog[P.key]={g:enc(Array.from(P.grid)),h:enc(Array.from(P.hinted)),el:elapsedMs()};
+  for(const key of Object.keys(S.prog)){const pk=key.split(':')[0];if(pk!==P.pr.key&&pk!==period().key)delete S.prog[key];}persist();}
+
+/* win */
+function win(){P.done=true;pauseClock();const secs=elapsedMs()/1000;$('clock').textContent=mmss(secs);
+  $('board').classList.add('won');const cells=$('board').children;const big=P.G.N>=13;for(const c of cells){c.classList.remove('flip');void c.offsetWidth;if(!big||Math.random()<.5)c.classList.add('flip');}buzz([20,40,20]);
+  if(P.mode==='rush'){sfx.rush();rushSolved(secs);return;}
+  sfx.win();
+  if(P.mode==='journey'){const par=PAR[P.N];const st=secs<=par?3:secs<=par*2?2:1;const prev=S.stars[P.lvl]||0;if(st>prev){S.stars[P.lvl]=st;}persist();walletUI();
+    setTimeout(()=>sheetJourney(st,secs,prev),900);}
+  else pzWin(secs);}
+
+function sheet(html){$('sheet').innerHTML=html;$('ov').hidden=false;const s=$('sheet');s.style.animation='none';void s.offsetWidth;s.style.animation='';}
+function closeSheet(){$('ov').hidden=true;}
+function sheetJourney(st,secs,prev){const par=PAR[P.N],gain=Math.max(0,st-prev);
+  const msg=st===3?'عالی بود!':st===2?'خوب بود!':'حل شد!';const tip=st<3?'زیر '+mmss(par)+' حلش کن تا سه ستاره بگیری.':'';
+  sheet(`<p class="k">مرحله‌ی ${nf(P.lvl)}</p><h3>${msg}</h3>
+  <div class="bigstars">${[0,1,2].map(i=>`<svg viewBox="0 0 24 24" class="${i<st?'on':''}" style="--i:${i}"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17l-6.1 3.4 1.5-6.8L2.2 9l6.9-.7z" fill="#f5b83d" stroke="#b97a12" stroke-width=".7"/></svg>`).join('')}</div>
+  <div class="sstats"><div><span>زمان</span><b class="num">${mmss(secs)}</b></div><div><span>ستاره‌ی تازه</span><b class="num">${gain?'+'+nf(gain):'—'}</b></div></div>
+  ${tip?`<p class="k">${tip}</p>`:''}
+  <div class="sbtns"><button class="btn sec" id="sAgain">دوباره</button>${P.lvl<LEVELS?'<button class="btn pri" id="sNext">مرحله‌ی بعد</button>':'<button class="btn pri" id="sLv">پایان سفر</button>'}</div>`);
+  const lvl=P.lvl;$('sAgain').onclick=()=>{closeSheet();playLevel(lvl);};
+  const nx=$('sNext');if(nx)nx.onclick=()=>{closeSheet();playLevel(lvl+1);};const lv=$('sLv');if(lv)lv.onclick=()=>{closeSheet();showLevels();};}
+
+function pzWin(secs){const pr=P.pr,N=P.N;delete S.prog[P.key];
+  const ps=S.periods[pr.key]=S.periods[pr.key]||{solved:{},gems:0};const rec=S.prec[pr.kind];
+  let rows=[],total=0;const first=ps.solved[N]===undefined;
+  if(first){ps.solved[N]=secs;rows.push(['حل معمای '+nf(N)+'×'+nf(N),PZ_BASE[N]]);if(secs<=PZ_PAR[N])rows.push(['زیر '+mmss(PZ_PAR[N]),1]);
+    rec.solved++;if(Object.keys(ps.solved).length===3&&!ps.bonus){ps.bonus=true;rows.push(['هر سه معمای این دوره',SET_BONUS]);rec.sets++;}}
+  total=rows.reduce((a,r)=>a+r[1],0);ps.gems+=total;S.gem.earned+=total;rec.gems+=total;
+  const nb=rec.best[N]===undefined||secs<rec.best[N];if(nb)rec.best[N]=secs;persist();walletUI(['wGem','psWallet']);if(total)sfx.gem();
+  const idx=PZ_SIZES.indexOf(N),nextN=PZ_SIZES[idx+1];
+  setTimeout(()=>{sheet(`<p class="k">${pr.title} · ${nf(N)}×${nf(N)}</p><h3>حل شد!</h3>${nb?'<span class="newrec">رکورد تازه‌ی '+(pr.kind==='day'?'روز':'شب')+'</span>':''}
+    <div class="sstats"><div><span>زمان</span><b class="num">${mmss(secs)}</b></div><div><span>بهترین ${nf(N)}×${nf(N)}</span><b class="num">${mmss(rec.best[N])}</b></div></div>
+    ${total?`<div class="gemrows">${rows.map(r=>`<div><span>${r[0]}</span><b class="num">+${nf(r[1])}${GEM}</b></div>`).join('')}<div class="tot"><span>جمع</span><b class="num">+${nf(total)}${GEM}</b></div></div>`:'<p class="k">این معما را قبلاً حل کرده بودی؛ الماس فقط بار اول داده می‌شود.</p>'}
+    <div class="sbtns"><button class="btn sec" id="sBack">فهرست</button>${nextN?`<button class="btn gem" id="sNext">معمای ${nf(nextN)}×${nf(nextN)}</button>`:'<button class="btn pri" id="sMenu">منو</button>'}</div>
+    <button class="copy" id="sCopy">کپی نتیجه برای دوستانت</button>`);
+    $('sBack').onclick=()=>{closeSheet();showPzSet();};const nx=$('sNext');if(nx)nx.onclick=()=>{closeSheet();playPz(pr,nextN);};const mn=$('sMenu');if(mn)mn.onclick=()=>{closeSheet();showMenu();};
+    copyBtn($('sCopy'),`${pr.title} «شب‌وروز» (${pr.date}): معمای ${nf(N)}×${nf(N)} را در ${mmss(secs)} حل کردم. تو چقدر طول می‌کشی؟`);},900);}
+function copyBtn(b,txt){b.onclick=()=>{try{navigator.clipboard.writeText(txt).then(()=>{b.textContent='کپی شد ✓';},()=>{b.textContent=txt;});}catch(e){b.textContent=txt;}};}
+
+/* rush */
+let R={};
+function startRush(){show('play');$('rushbar').hidden=false;$('app').classList.remove('dayside');$('plTitle').innerHTML='شتاب<small>هر حل وقت اضافه می‌دهد</small>';
+  R={solved:0,score:0,shown:0,combo:1,maxCombo:1,seed:(Date.now()^Math.floor(Math.random()*1e9))>>>0,over:false};stopPlayKeep();S.rush.runs++;persist();updRush();
+  $('rTime').textContent=nf(60);$('rBar').style.width='100%';
+  const ready=nextRush(60000);P.counting=true;startClock();
+  const cd=document.createElement('div');cd.className='countdown';$('play').appendChild(cd);const seq=['۳','۲','۱','بزن!'];let k=0;
+  const step=()=>{if(!P||P.mode!=='rush'||R.over){cd.remove();return;}if(k<seq.length){cd.innerHTML=`<b>${seq[k]}</b>`;tone(k<3?660:1320,k<3?.12:.3,'triangle',.09);buzz(k<3?15:40);k++;setTimeout(step,k===seq.length?600:800);}
+    else{cd.remove();$('board').classList.remove('veil');P.counting=false;P.deadline=performance.now()+60000;}};
+  const me=P;ready.then(()=>{if(P===me&&!R.over)step();else cd.remove();});}
+const rushN=()=>R.solved<3?5:R.solved<8?6:7;
+function rushCfg(k){const N=k<3?5:k<8?6:7;return{N,key:'rush:'+R.seed+':'+k,seed:R.seed+k*7919,opt:{extra:N===7?.08:.03,probe:N===7}};}
+function nextRush(timeLeft){const c=rushCfg(R.solved);
+  const pr=loadPuzzle({mode:'rush',...c,cache:false});pr.then(()=>hintCostUI());P.deadline=performance.now()+timeLeft;P.paused=false;
+  const n2=rushCfg(R.solved+1);getPuzzle(n2.key,n2.N,n2.seed,n2.opt,false);return pr;}
+function rushSolved(secs){const N=P.N;const fast=secs<PAR[N]*.6;R.combo=fast?Math.min(R.combo+1,5):1;R.maxCombo=Math.max(R.maxCombo,R.combo);
+  const pts=({5:100,6:220,7:400})[N]*R.combo;R.score+=pts;R.solved++;const bonus=({5:20,6:35,7:55})[N];const left=P.deadline-performance.now()+bonus*1000;
+  floatPop('+'+nf(bonus)+' ثانیه');if(R.combo>1)setTimeout(()=>floatPop('زنجیره ×'+nf(R.combo),'combo'),260);updRush();
+  setTimeout(()=>{if(!R.over&&P&&P.mode==='rush')nextRush(Math.max(1000,left-750));},750);}
+function updRush(){$('rSolved').textContent=nf(R.solved);$('rCombo').textContent='×'+nf(R.combo);$('rComboBox').classList.toggle('hot',R.combo>1);
+  const nn=rushCfg(R.solved+1).N;$('rNext').textContent='معمای بعد: '+nf(nn)+'×'+nf(nn);
+  const from=R.shown,to=R.score,t0=performance.now();const anim=t=>{const k=Math.min(1,(t-t0)/600);R.shown=Math.round(from+(to-from)*k*(2-k));$('rScore').textContent=nf(R.shown);if(k<1)requestAnimationFrame(anim);};requestAnimationFrame(anim);}
+function rushOver(){R.over=true;if(P){P.done=true;}clearInterval(clockId);$('play').classList.remove('danger');$('rTime').textContent=nf(0);$('rBar').style.width='0%';sfx.over();buzz([60,40,60]);
+  const nb=R.score>S.rush.best;if(nb)S.rush.best=R.score;S.rush.most=Math.max(S.rush.most,R.solved);S.rush.combo=Math.max(S.rush.combo,R.maxCombo);persist();
+  sheet(`<p class="k">وقت تمام شد</p><h3 class="num">${nf(R.score)} امتیاز</h3>${nb?'<span class="newrec">رکورد تازه!</span>':''}
+  <div class="sstats"><div><span>حل‌شده</span><b class="num">${nf(R.solved)}</b></div><div><span>بهترین امتیاز</span><b class="num">${nf(S.rush.best)}</b></div></div>
+  <p class="k">سریع حل کنی، زنجیره بالا می‌رود و امتیاز هر معما چند برابر می‌شود.</p>
+  <div class="sbtns"><button class="btn sec" id="sMenu">منو</button><button class="btn pri" id="sAgain">دوباره</button></div><button class="copy" id="sCopy">کپی نتیجه برای دوستانت</button>`);
+  $('sMenu').onclick=()=>{closeSheet();showMenu();};$('sAgain').onclick=()=>{closeSheet();startRush();};
+  copyBtn($('sCopy'),`در حالت شتاب «شب‌وروز» ${nf(R.solved)} معما حل کردم و ${nf(R.score)} امتیاز گرفتم. می‌توانی بیشتر بگیری؟`);}
+function floatPop(t,cls){const s=document.createElement('div');s.className='pop'+(cls?' '+cls:'');s.textContent=t;$('play').appendChild(s);setTimeout(()=>s.remove(),1050);}
+
+/* nav */
+$('mJourney').onclick=()=>{sfx.ui();showLevels();};
+$('mRush').onclick=()=>{sfx.ui();startRush();};
+$('mPz').onclick=()=>{sfx.ui();showPzSet();};
+$('btnRec').onclick=()=>{sfx.ui();showRecords();};
+$('btnSound').onclick=()=>{S.sound=!S.sound;persist();$('btnSound').textContent='صدا: '+(S.sound?'روشن':'خاموش');sfx.ui();};
+document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>showMenu());
+$('plBack').onclick=()=>{const m=P&&P.mode;const pr=P&&P.pr;if(m==='rush'&&!R.over){R.over=true;}
+  if(m==='journey')showLevels();else if(m==='pz')showPzSet();else showMenu();};
+$('btnHow').onclick=()=>{sheet(`<h3>قوانین</h3><div class="howto">
+  <div>همه‌ی خانه‌ها را با <b>روز</b> یا <b>شب</b> پر کن، طوری که:</div>
+  <div class="demo"><div class="mini"><div class="cell d"></div><div class="cell d"></div><div class="cell d"></div><div class="cell d"></div><span class="x"></span></div><div class="mini"><div class="cell n"></div><div class="cell n"></div><div class="cell n"></div><div class="cell n"></div><span class="x"></span></div></div>
+  <div>۱. <b>هیچ مربع ۲×۲</b> کاملاً روز یا کاملاً شب نباشد.</div>
+  <div>۲. همه‌ی خانه‌های <b>روز</b> با حرکت افقی یا عمودی به هم برسند.</div>
+  <div>۳. همه‌ی خانه‌های <b>شب</b> هم به هم برسند.</div>
+  <div>خانه‌های نقطه‌دار از اول چیده شده‌اند. جواب هر معما فقط یکی است و بدون حدس، با فکر پیدا می‌شود.</div>
+  <div><b>ستاره</b> از مرحله‌های سفر می‌آید و <b>الماس</b> از معمای امروز و امشب. راهنما در سفر و شتاب ۱ ستاره و در معماها ۱ الماس خرج دارد.</div></div>
+  <div class="sbtns"><button class="btn pri" id="sOk">فهمیدم</button></div>`);$('sOk').onclick=closeSheet;};
+
+showMenu();
+if(!S.welcomed){S.welcomed=true;persist();setTimeout(()=>{sheet(`<p class="k">خوش آمدی</p><h3>هدیه‌ی شروع</h3><div class="gemrows"><div><span>ستاره برای راهنمای سفر</span><b class="num" style="color:var(--sun)">+${nf(5)}${STAR}</b></div><div><span>الماس برای راهنمای معماها</span><b class="num">+${nf(3)}${GEM}</b></div></div><div class="sbtns"><button class="btn pri" id="sOk">بزن بریم</button></div>`);$('sOk').onclick=closeSheet;},500);}
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+</script>
+</body>
+</html>
